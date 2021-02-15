@@ -1,0 +1,420 @@
+---
+title: "Intro"
+output: html_document
+---
+
+.libPaths("C:/Program Files/R/win-library/4.0") Changer le chemin vers la librairie s'il faut
+.libPaths() Obtenir le chemin à la librairie
+
+
+
+ctrl + alt +i pour creer zone de code
+
+Petite flèches vert en bout de ligne c'est pour lancer tt le chunk d'un coup
+pour lancer qu'une ligne, la méthode classique marche
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, include=TRUE, cache=TRUE, results="hide", warning=FALSE, error=TRUE, eval=FALSE)
+```
+
+ouvre une parenthèse avec tt les charactéristique des chunk
+resultat -> hidden pour que ce soit pas visible
+eval -> met sur faux car sinon fera les calcul a chaque fois que lancera l'HTML-> lourd pour rien
+
+Pour générer le fichier -> Knit (demande quelle type de fichier) il ouvre même
+une page HTML de lui même si on veut
+
+```{r}
+setwd("C:/Users/Home/Desktop/Master 1 Full/2ieme quadri/Module épigénétique/workflow")
+getwd()
+ls() # Montre touts les objets charger/créer pour le moment
+rm(list=ls()) # rm pour remove -> remove tt les objets
+```
+
+
+```{r}
+a <- getwd() # créer objet classic
+a
+```
+
+
+Bioconducteur -> platforme internet qui reprend la majorité des packages
+dévelloper en biologie (génétique, protéomique, etc...)
+
+
+```{r}
+BiocManager::version() # check la version de BiocManager 
+install.packages("BiocManager") 
+biocManager::install(version="3.12")# instal la version 3.12 si pas déjà fait
+library(BiocManager)# le charge
+```
+
+
+```{r}
+biocManager::install() # pour instal package via bioconductor !
+```
+les double 2 points c'est pour bien indiquer que la fonction 'install' est celle
+de BiocManager + Permet aussi de ne pas charger tout les packages de la librairie de BiocManager
+
+```{r}
+?fct() # obtient l'aide pour la fonction
+help(package = "biobase")
+browseVignettes(package = "BiocManager")# renvoye vers page html qui indique les commande de base et aide a ressoudre des problème commmun
+BiocManager::install("Biobase")
+```
+
+```{r}
+BiocManager::install("Biostrings")
+if(!require(c("GenomicRanges", "GenomeInfoDb", "IRanges", "Biostrings", "BSgenome", "rtracklayer", "AnnotationHub", "SummarizedExperiment", "airway")))
+  {
+BiocManager::install(c("GenomicRanges", "GenomeInfoDb", "IRanges", "Biostrings", "BSgenome", "rtracklayer", "AnnotationHub", "SummarizedExperiment", "airway"))}
+```
+
+Intro base
+```{r}
+library("Biostrings")
+install.packages("boot") # Car le package Biostrings c'est mal installé
+DNA <- DNAString("TCAG")
+DNA
+class(DNA)
+
+
+as.character(DNA)
+
+b <- DNA[2:3]
+
+b
+
+DNA2 <- DNAString("AAGCTAT")
+DNA2
+```
+
+
+List de séquence maitnenant
+```{r}
+DNA3 <- DNAStringSet(c("TCA","AAATCG"))
+DNA3
+class(DNA3) # C'est un stringSet now
+length(DNA3) # 2 car 2 objet dans vecteur
+width(DNA3) # Donne la taille des séquence des 2 objets
+
+duplicated(DNA3)# indique s'ils y a les mêmes séquences
+```
+
+```{r}
+seqs1 <- DNAStringSet(list(seq1=DNA, seq2=DNA2))
+seqs1
+
+class(seqs1)
+
+seqs1$seq1 # Le $ pour prendre seulement une partie
+
+```
+
+Prend séquence sur ensembl !
+
+```{r}
+seqs2 <- readDNAStringSet("kmarCDR2.fa",format = "FASTA")# doti mettre tout le chemin si la file n'est pas le working directory
+?readDNAStringSet
+seqs2
+
+width(seqs2) # Taille de séquence
+
+vmatchPattern("AGGTCG", seqs2) # Donne la position des séquences
+
+subseq1 <- subseq(seqs2, 3,10)
+
+letterFrequency(seqs2, "A")
+letterFrequency(seqs2, "GC") # Nombre de G OU C et pas s'ils se suivent
+
+letterFrequency(seqs2, "GC")/width((seqs2)) #divise le fr"quence par la taille total de base de l'échantillions (fait le rapport) -> 41% de G ou C
+
+dinucleotideFrequency(seqs2)# l'ensemble de tt les nucléotide et le no=bre de fois qu'ils apparissent -> les CG -> 399 (moins que les autres car la méthylation rend les C plus instable -> mutation en Thymine !)
+
+translate(seqs2) # Obtient les A.A
+```
+
+Les GRanges -> reprennent des ensembles
+```{r}
+myseq <- DNAString("ACCATTGATTAT")
+myset <- DNAStringSet(list(chrI=myseq, chrII=DNAString("ACGTACGT")))
+myset
+range1 <- GRanges("chrI", IRanges(start = 3, end = 5), strand = "+")# associe le chrI a une coordonner de séquence (commence a 3 et fini a 5) sens positif -> strand = +
+range1
+class(range1) # objet GRange -> list de coordoner de s"quence
+
+?GRanges
+
+mcols(range1)$wobble <- 10 #create metadata columns (wobble de valeur 10)
+range1
+seqinfo(range1) #???
+range2 <- GRanges(c("chrZ","chrY"), IRanges(start=c(5,10), end=c(35,45)), strand="+") # créer GRange mais cette fois ci avec 2 sequence (le premier objet commence a 5 et le deuxieme commence a 10) finisse a 35 et 45 respectivement
+range2
+range3 <- c(range1, range2) # Combinne les 2 ensemble
+range3
+range3[1:2,]# selectionne les 2 premiere lignes et tt les colones
+```
+
+Voila Intro fini
+=================================
+
+
+Analyse données traitement bisulfite/ Methylkit
+
+```{r}
+library(BiocManager)
+library(Biostrings)
+library(GenomicRanges)
+install.packages("pacman")
+library(pacman)
+BiocManager::install("methylKit") # Bon package comme outils d'analyse
+library(methylKit)
+
+install.packages("gtable") # Car methylkit c'est mal télécharger
+```
+
+
+```{r}
+a <- system.file("extdata", "test1.myCpG.txt", package = "methylKit")
+
+file.list <- list(system.file("extdata", "test1.myCpG.txt", package = "methylKit"), system.file("extdata", "test2.myCpG.txt", package = "methylKit"),system.file("extdata", "control1.myCpG.txt", package = "methylKit"),system.file("extdata", "control2.myCpG.txt", package = "methylKit"))
+##!!!! PAS TEST 3 et 4 !! appelle control 1 et 2 dans le package methylkit chez moi !!
+a
+
+myobj <- methRead(file.list,
+                  sample.id = list("test1","test2","control1","control2"),
+                  assembly = "hg18",
+                  treatment = c(1,1,0,0), #les 2 premier sont condition 1 et les 2 apres condtion zero
+                  context = "CpG",
+                  dbdir = getwd(),
+                  mincov = 10)
+myobj
+??methylKit
+#?methRead Permet de lire les fichiers avec les différents paramètres
+# rien en dessous de 10 vu que minimum coverage est de 10
+```
+chaque ligne correspond a un CpG
+1904 CpG pour le premier
+
+
+```{r}
+getMethylationStats(myobj[[1]], plot = T, both.strands = F)# bcp de CpG a gauche et a droite et peu au milieu -> les CpG qui sont étudier sont en majorité peu méthyler ou fortement (milieu est moins fréquent).
+# BCP au début car CpG island souvent dans les regions promotrices 
+```
+Done
+
+```{r}
+
+getCoverageStats(myobj[[1]], plot = T, both.strands = F)
+#On obtient une répartition des coverages en log base 10, le 1 représente 10
+```
+sd
+
+```{r}
+filtered.myobj <- filterByCoverage(myobj, lo.count= 10, lo.perc = NULL, hi.count = NULL, hi.perc = 99.9)
+filtered.myobj
+
+```
+
+sd
+
+```{r}
+meth <- methylKit::unite(filtered.myobj, destrand = FALSE) # PREND CELUI LA 
+#meth <- methylKit::unite(filtered.myobj, destrand = FALSE, min.per.group = 1L)
+meth # fusionne les 4 tableau en 1 ( associer les valeurs de coverage de c et t pour chaque échantillion (le 3 preimier sont l'échantillion 1, 3 d'après c'est pour le 2))
+
+# 959 sont les CpG commun au 3 equivalent a par defaut min.per.group = 2L en gros) 
+#2207 en rajoutant l'argument qui dit qu'il est présent dans au moins 1 des réplicats par groupes
+
+```
+
+sd
+
+```{r}
+pm = percMethylation(meth) # Pourcentage de méthylation 
+head(pm)
+summary(pm)# mediane supérieur a la moyenne, il y a des valeurs qui pousse la moyenne vers la gauche
+
+cv <- function(x){sd(x)/mean(x)*100}# fonction 
+
+CTL <- apply(pm[,3:4], MARGIN=1, FUN = cv)# applique la fonction cv a CTL (margin = 1 signifie que l'applique sur les lignes,) [,3:4] 3:4 prend les controle et , toute les lignes
+# montre la variabilité entre 3 et 4 en gros (controle)
+summary(CTL)
+head(CTL) #donne les coef de variabilité
+hist(CTL)
+
+
+```
+sd
+
+```{r}
+getCorrelation(meth, plot = F)# matrice de coef de correlation 
+# -> replicats test et control sont plus proche entre eux qu'avec les autres
+getCorrelation(meth, plot = T)
+
+clusterSamples(meth, dist = "correlation", method = "ward", plot = TRUE)
+# test et control sont regrouper entre eux -> logique
+
+pc <- PCASamples(meth, obj.return = T, adj.lim = c(1,1), comp = c(1,2))
+#just lim pour normalise, comp -> composante a afficher (généralement la 1 et 2)
+#On voit bien que les control sont séparé des test
+
+library("factoextra")
+
+eig.val <- get_eigenvalue(pc)
+
+fviz_eig(pc) # Affiche un beau graphique avec les eigen values
+
+```
+
+Analyses des régions (plus les CpG)
+
+Analyse des regions (DMR analyse les CpG dans les tiles (coupe a intervale régulier, remember dia cours) permet de liser les variations de méthylation au niveau des CpG + améliorer la puissance et vu que regrouper en ilots (généralement les CpG d'un ilot vont dans le m^me sens))
+
+Analyse par fragment n'est pas faite ici, faut codé en C+
+
+```{r}
+
+tiles <- tileMethylCounts(myobj, win.size = 1000,step.size = 1000,cov.bases = 10)
+tiles[[1]]
+#taille des tiles (souvent mille), step.size pareil, si on augmente, signifie qu'il y aura des recouvrement. cov.bases -> nombre de CpG minimal dans les tiles pour qu'elles soient prit en compte
+
+#on a biend es tiles de mille paire de bases
+tiles <- methylKit::unite(tiles, destrand = FALSE, min.per.group = NULL)
+tiles
+# 27 tiles/ region au final, reduit fortement la taille des données sur lesquelles ont travail (de 959 CpG individuelle) -> Gros changement niveau test statistique
+```
+
+Extraire les echantillions d'interet -> Comparé les échantillions 2 à 2
+
+```{r}
+dm.lr=calculateDiffMeth(meth,overdispersion = "MN",test="Chisq", covariate = NULL, adjust = "SLIM") 
+# Prend meth -> par des CpG individuelle
+# Applique la fonction régression logistique -> la plus souvent utilisé
+# Overdispersion -> "MN" -> dispersion par default, tient compte de l'overdispersion qui est un biais (lorsque les variance observer sont plus grandes que les valeurs théorique)
+#Le test c'est un ki-carré, covariable -> s'ils y a des covariable comme l'age par exemple
+#adjust -> différente méthode pour calculer/ajuster les comparaison multiple, peu de faux négatif avec celle là
+dm.lr
+#===
+dm.lr_tiles=calculateDiffMeth(tiles,overdispersion = "MN",test="Chisq", covariate = NULL, adjust = "SLIM")
+dm.lr_tiles
+# De nouveau regression logistique, mais sur les CpG individuelle à la place des Regions -> Grosse diff niveau Q value vu que pour les tiles c'est déjà "liser" donc il y a déjà moins de différence a la base
+```
+
+
+
+```{r}
+#chopper les valeur intersente
+all.diff = getMethylDiff(dm.lr, difference=10,qvalue=0.01, type="all")
+all.diff # obtient 79 qui sont différenciellement méthyler avec une qvalue
+### ATTENTION CONNAITRE CUTOF (différence de % de méthylation pour selectionner nos CpG (attention que 1% peu etre interessent parfois))  ET QVALUE 
+#type ='All', prend tt les différences (hypométhylation et hyperméthylation)
+
+
+```
+ Modèle béta binomial (2ieme modèle de dispersion) prend deja en compte l'overdispersion (mais peu pas utilisé de covariable)
+```{r}
+dn.dss= calculateDiffMethDSS(meth, adjust = "SLIM" )
+dn.dss
+
+all.diffdss=getMethylDiff(dn.dss, difference= 10, qvalue = 0.01, type="all")
+all.diffdss
+
+
+```
+
+========================
+APRES MIDI
+
+format fastq.gz (4 lignes) 1er identifiant 2ieme sequence, 3ieme pas importante et 4ieme lettre donne une evaluation du bon deroulement (le ! = mauvais)
+
+
+fastqc PROGRAMME 
+le score fret -> casse jaune, c'est la probabilité de se tromper -> freq score de 10 -> 1 chance sur 10 de se tromper fret 20 = 1 chance sur 1000 ???
+si trop mauvais, reconnaisance des CpG 
+
+la qualité par position est aussi important couleur montre si sequencage est de bonne qualité ou pas
+freq score de 10 -> 1 chance sur 10 de se tromper
+per sequence quality score -> y la fréquence des read et x c'est le fret score moyen d'une reads et la fréquence de ses reads. le pic doit etre a droite en gros
+per base sequence content, graphe reprend le pourcentage de base moyen a chaque position -> faut avoir des courbe plate et reguliere partout 
+
+quality check du sequencage -< 
+
+
+pour notre exemple, le score est très élevé
+
+per base sequence content -> très mauvais
+
+utilise enzyme de restriction qui coupe la sequence CCGG coupe entre les 2 C -> traitement bisulfite -> pour ca que commence par CGG (2ieme et 3ieme paire 100% de G) pour la premiere 70% (C) 30% (T) -> Ducoup resulat normal c'est bon !
+
+Per sequence GC content -> typique aussi
+les overpresent sont due a cause des adaptater (en partie en tout cas)
+faut les retire sinon l'alignement se passera pas bien
+et aussi retire les 3 première bases (CGG) mais pas olbigatoire
+-> C'est le trimming !!!!!! via le logiciel trimm galor!
+
+methylation calling -> fishier Bam avec Bismarck
+
+
+
+
+ANALYSE DES DONNEES DU LABO
+```{r}
+myobj <- readRDS("myobj.RDS")
+myobj
+
+getMethylationStats(myobj[[1]], plot = T, both.strands = F)
+getMethylationStats(myobj[[2]], plot = T, both.strands = F)
+getMethylationStats(myobj[[3]], plot = T, both.strands = F)
+getMethylationStats(myobj[[4]], plot = T, both.strands = F)
+getMethylationStats(myobj[[5]], plot = T, both.strands = F)
+getMethylationStats(myobj[[6]], plot = T, both.strands = F)
+getMethylationStats(myobj[[7]], plot = T, both.strands = F)
+getMethylationStats(myobj[[8]], plot = T, both.strands = F)
+getMethylationStats(myobj[[9]], plot = T, both.strands = F)
+
+getCoverageStats(myobj[[1]], plot = T, both.strands = F)
+
+```
+UNIFICATION
+
+```{r}
+meth <- methylKit::unite(filtered.myobj, destrand = FALSE,  min.per.group = 1L)
+meth
+# Analyse CpG, il faut que la méhtylation soit présente dans au moins 1 réplicats pour etre unifier
+meth <- methylKit::unite(tiles, destrand = FALSE, min.per.group = 3L)
+# pareil mais faut qu'il soit présent dans 3 réplicats a chaque fois
+?unite
+
+filtered.myobj <- filterByCoverage(myobj, lo.count= 10, lo.perc = NULL, hi.count = NULL, hi.perc = 99.9)
+
+meth0<-methylKit::unite(filtered.myobj, destrand = F,min.per.group=NULL)
+meth0
+# Les méthylation doivent etre présente dans tout les réplicats !
+
+clusterSamples(meth0, dist = "correlation", method = "ward", plot = TRUE)
+
+pc <- PCASamples(meth0, obj.return = T, adj.lim = c(1,1), comp = c(1,2))
+# La séparation entre les ocnditions est moins visible
+
+install.packages("factoextra")
+library(factoextra)
+
+dm.lr=calculateDiffMeth(meth0,overdispersion = "MN",test="Chisq", covariate = NULL, adjust = "SLIM")
+dm.lr 
+all.diff = getMethylDiff(dm.lr, difference=10,qvalue=0.01, type="all")
+all.diff
+
+dn.dss= calculateDiffMethDSS(meth, adjust = "SLIM" )# Ne montre rien, rien qui "survie" 
+
+b <- readRDS("tiles1.RDS")
+
+filtered.b <- filterByCoverage(b, lo.count= 10, lo.perc = NULL, hi.count = NULL, hi.perc = 99.9)
+alltiles <- methylKit::unite(filtered.b, destrand = FALSE,  min.per.group = 1L)
+alltiles
+
+tiles.dss = calcul
+
+c <-  readDBS
+```
+
